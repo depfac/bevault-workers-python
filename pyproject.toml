@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bevault_workers"
+version = "0.0.0"
+description = "A library for creating custom beVault or AWS Step Functions workers and data stores"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name="mdb", email="mdb@dfakto.com" },
+]
+requires-python = ">=3.13"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13"
+]
+dependencies = [
+    "boto3>=1.38.10,<2",
+    "botocore>=1.38.10,<2",
+    "certifi>=2025.4.26",
+    "charset-normalizer>=3.4.2,<4",
+    "idna>=3.10,<4",
+    "jmespath>=1.0.1,<2",
+    "msal>=1.31.1,<2",
+    "psycopg[binary]>=3.3.2,<4",
+    "paramiko>=3.0.0,<4",
+    "python-dateutil>=2.9.0,<3",
+    "python-json-logger>=3.3.0,<4",
+    "requests>=2.32.3,<3",
+    "s3transfer>=0.12.0,<1",
+    "six>=1.17.0,<2",
+    "urllib3>=2.4.0,<3",
+    "python-dotenv>=1.1.1,<2",
+]
+
+[project.urls]
+Homepage = "https://github.com/depfac/bevault-workers-python"
+Repository = "https://github.com/depfac/bevault-workers-python"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bevault_workers"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/bevault_workers",
+  "pyproject.toml",
+  "README.md",
+]

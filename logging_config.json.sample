@@ -1,0 +1,30 @@
+{
+    "logging": {
+      "minimumLevel": {
+        "default": "Information",
+        "override": {
+          "urllib3": "Warning",
+          "boto3": "Warning",
+          "botocore": "Warning",
+          "requests": "Warning"
+        }
+      },
+      "writeTo": [
+        {
+          "name": "Console",
+          "args": {
+            "outputTemplate": "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level}] {Message:lj} <s:{SourceContext}>{NewLine}{Exception}"
+          }
+        },
+        {
+          "name": "File",
+          "args": {
+            "path": "/var/logs/python_workers/python_worker.log",
+            "rollOnFileSizeLimit": true,
+            "fileSizeLimitBytes": 10000000,
+            "retainedFileCountLimit": 10
+          }
+        }
+      ]
+    }
+  }

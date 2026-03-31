@@ -1,0 +1,11 @@
+repos:
+  # NOTE: This hook ensure that all pre-commits are automatically updated
+-   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
+    rev: v0.9.0
+    hooks:
+    -   id: pre-commit-update
+
+-   repo: https://devel.depfac.com/open-source/pre-commit
+    rev: 1.2.1
+    hooks:
+    -   id: python

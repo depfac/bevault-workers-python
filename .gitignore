@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+env/
+venv/
+ENV/
+
+# VS Code config
+.vscode/
+.code-workspace
+
+# Environment and config files
+.env
+*.env
+*config.json
+
+# pipenv / poetry
+Pipfile.lock
+poetry.lock
+
+# pytest
+.pytest_cache/
+
+# build artifacts
+dist/
+

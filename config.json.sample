@@ -1,0 +1,13 @@
+[
+    {
+        "Name": "default-df-staging",
+        "Type": "postgresql",
+        "Config": {
+            "host": "127.0.0.1",
+            "port": "5432",
+            "user": "",
+            "password": "",
+            "dbname": ""
+        }
+    }
+]
