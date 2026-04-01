@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/depfac/bevault-workers-python/compare/v0.1.1...v0.1.2) (2026-04-01)
+
+
+### Bug Fixes
+
+* align project name with PyPi project ([05e9f27](https://github.com/depfac/bevault-workers-python/commit/05e9f277f109d0c2fc603c695eeb385d7d7b0d95))
+
 ## [0.1.1](https://github.com/depfac/bevault-workers-python/compare/v0.1.0...v0.1.1) (2026-04-01)
 
 
