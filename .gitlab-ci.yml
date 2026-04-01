@@ -1,3 +1,0 @@
----
-include:
-  - component: $CI_SERVER_FQDN/open-source/cicd-components/python-components/python-all@~latest
