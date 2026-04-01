@@ -3,8 +3,8 @@ requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "bevault_workers"
-version = "0.1.1"
+name = "bevault-workers"
+version = "0.1.2rc1"
 description = "A library for creating custom beVault or AWS Step Functions workers and data stores"
 readme = "README.md"
 license = { file = "LICENSE" }
