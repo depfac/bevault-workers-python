@@ -365,5 +365,7 @@ class FileHandlerWorker(BaseWorker):
         return {"status": "success", "content": content.decode()}
 ```
 
-Note that you can override the implementation of the Stores from the library by creating a store with the same name in your project.
+Note that you can override the implementation of a **built-in** store by placing a module in your project whose **basename matches** the bare **Type** (for example, `Type: "postgresql"` resolves to `stores.postgresql`, then `bevault_workers.stores.postgresql`). The store **Name** in JSON is only the instance identifier passed to `StoreRegistry.get(...)` in workers, not the implementation selector.
+
+To keep neutral filenames (for example `stores/custom_db_store.py`), set **Type** to a fully qualified path such as `stores.custom_db_store` or `stores.custom_db_store:Store` instead of a bare name like `postgresql`.
 

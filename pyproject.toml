@@ -9,7 +9,8 @@ description = "A library for creating custom beVault or AWS Step Functions worke
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
-    { name="mdb", email="mdb@dfakto.com" },
+    { name="Marc de Burlet", email="mdb@dfakto.com" },
+    { name="Nathan Ayele", email="nay@dfakto.com" },
 ]
 requires-python = ">=3.13"
 classifiers = [
