@@ -1,25 +1,13 @@
 [
     {
         "Name": "example-db-store",
-        "Type": "stores.custom_db_store",
+        "Type": "postgresql",
         "Config": {
             "host": "127.0.0.1",
             "port": "5432",
             "user": "",
             "password": "",
             "dbname": ""
-        }
-    },
-    {
-        "Name": "example-file-store",
-        "Type": "stores.custom_file_store",
-        "Config": {
-            "bucketName": "",
-            "prefix": "",
-            "accessKey": "",
-            "secretKey": "",
-            "serviceUrl": "",
-            "regionEndPoint": ""
         }
     }
 ]

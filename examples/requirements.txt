@@ -1,1 +1,2 @@
-bevault-workers~=0.1.2
+# Runtime dependency; includes drivers such as psycopg for built-in PostgreSQL stores.
+bevault-workers>=0.1.2
