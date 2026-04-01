@@ -277,23 +277,6 @@ Example with PostgreSQL and SFTP:
 
 ```json
 {
-  "host": "localhost",
-  "port": 5432,
-  "database": "northwind__mig__pgsql_migration",
-  "username": "metavault",
-  "password": "xxx",
-  "connectionString": ""
-}
-```
-
-The `sqlserver` store uses ODBC via `pyodbc` (install the [Microsoft ODBC Driver for SQL Server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server) on the worker host). You can pass a full `connectionString`, or discrete fields (`host` or `server`, `port` defaulting to 1433, `user` / `username`, `password`, `dbname` / `database`). Optional: `driver`, `encrypt`, `trustServerCertificate`. Parameterized SQL in workers should use `?` placeholders, not `%s`.
-
-### logging_config.json file
-
-Create a `logging_config.json` file to configure the logging behavior:
-
-```json
-{
     "logging": {
       "minimumLevel": {
         "default": "Information",
