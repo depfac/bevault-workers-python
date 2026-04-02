@@ -42,7 +42,7 @@ class StoreRegistry:
     """Registry and loader for data stores.
 
     Supported ways to reference a store 'type' in config:
-      1) Bare name (e.g., 'postgresql', 's3'):
+      1) Bare name (e.g., 'postgresql', 'sqlserver', 's3'):
            - Tries bevault_workers.stores.<type> first (library)
            - Then tries stores.<type> (user project)
            - Then tries any base packages listed in env bevault_workers_STORE_PATHS
