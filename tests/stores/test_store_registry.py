@@ -113,6 +113,30 @@ def test_get_store_from_filetoken_valid_s3(mock_load_config, mock_boto_client):
     assert isinstance(store, S3Store)
 
 
+@patch("bevault_workers.stores.gitlab.requests.Session")
+@patch("bevault_workers.stores.store_registry.load_store_config")
+def test_get_store_from_filetoken_valid_gitlab(mock_load_config, mock_session_cls):
+    """Valid GitLab token resolves to the gitlab FileStore."""
+    mock_session_cls.return_value = MagicMock()
+    gitlab_conf = {
+        "BaseUri": "https://gitlab.com",
+        "AccessToken": "token",
+        "ProjectId": "210",
+    }
+    mock_load_config.return_value = [
+        {"Name": "gitlabStore", "Type": "gitlab", "Config": gitlab_conf},
+    ]
+
+    StoreRegistry.load()
+
+    token = "gitlab://gitlabStore/main/path/to/file.txt"
+    store = StoreRegistry.get_store_from_filetoken(token)
+
+    from bevault_workers.stores.gitlab import Store as GitlabStore
+
+    assert isinstance(store, GitlabStore)
+
+
 def test_get_store_from_filetoken_invalid_format():
     """Malformed tokens raise a ValueError."""
     with pytest.raises(ValueError) as exc:

@@ -51,6 +51,16 @@ def postgresql_config():
 
 
 @pytest.fixture
+def gitlab_config():
+    """Minimal valid GitLab store config."""
+    return {
+        "BaseUri": "https://gitlab.com",
+        "AccessToken": "test-token",
+        "ProjectId": "123",
+    }
+
+
+@pytest.fixture
 def sqlserver_config():
     """Minimal valid SQL Server store config."""
     return {
