@@ -19,6 +19,12 @@
 
 * **examples:** add example to use this library and create custom workers and stores ([2d134e8](https://github.com/depfac/bevault-workers-python/commit/2d134e8072fca8820f4fa290fc5a9a1b939a2d7e))
 
+## Unreleased
+
+### Features
+
+* Built-in `sqlserver` DbStore (ODBC via pyodbc), with PostgreSQL-like config fields and optional `connectionString`.
+
 ## 0.1.0 (2026-03-31)
 
 

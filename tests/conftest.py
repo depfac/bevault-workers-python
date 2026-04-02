@@ -48,3 +48,15 @@ def postgresql_config():
         "password": "testpass",
         "dbname": "testdb",
     }
+
+
+@pytest.fixture
+def sqlserver_config():
+    """Minimal valid SQL Server store config."""
+    return {
+        "host": "127.0.0.1",
+        "port": "1433",
+        "user": "testuser",
+        "password": "testpass",
+        "dbname": "testdb",
+    }
