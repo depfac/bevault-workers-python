@@ -23,7 +23,7 @@ class ReadFileTokenWorker(BaseWorker):
             return {
                 "status": "success",
                 "result": {
-                    "contentBase64": base64.b64encode(data).decode("ascii"),
+                    "contentBase64": data.decode("utf-8"),
                     "fileName": file_name,
                 },
             }  # type: ignore
