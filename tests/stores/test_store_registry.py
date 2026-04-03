@@ -1,5 +1,6 @@
 """Tests for StoreRegistry.get_store_from_filetoken."""
 
+import threading
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -148,7 +149,7 @@ def test_get_store_from_filetoken_invalid_format():
 @patch("bevault_workers.stores.store_registry.load_store_config")
 @patch("bevault_workers.stores.store_registry.StoreRegistry._resolve_store_class")
 def test_get_store_from_filetoken_unknown_protocol(mock_resolve, mock_load_config):
-    """Protocol not matching any FileStore protocol raises a ValueError."""
+    """Token scheme must match the resolved store's FileStore protocol."""
     # Register a single SFTP FileStore
     sftp_conf = {
         "Host": "sftp.example.com",
@@ -172,7 +173,7 @@ def test_get_store_from_filetoken_unknown_protocol(mock_resolve, mock_load_confi
     with pytest.raises(ValueError) as exc:
         StoreRegistry.get_store_from_filetoken(token)
 
-    assert "does not correspond to a known FileStore" in str(exc.value)
+    assert "does not match FileStore" in str(exc.value)
 
 
 @patch("bevault_workers.stores.store_registry.load_store_config")
@@ -237,9 +238,7 @@ def test_get_store_from_filetoken_protocol_mismatch_for_store(
     with pytest.raises(ValueError) as exc:
         StoreRegistry.get_store_from_filetoken(token)
 
-    assert "does not correspond to a known FileStore" in str(exc.value) or (
-        "does not match FileStore" in str(exc.value)
-    )
+    assert "does not match FileStore" in str(exc.value)
 
 
 @patch("bevault_workers.stores.store_registry.load_store_config")
@@ -255,3 +254,80 @@ def test_get_unknown_store_error_message_is_explicit(mock_load_config):
     assert "missingStore" in msg
     assert "not found in the store registry" in msg
     assert isinstance(exc_info.value, KeyError)
+
+
+@patch("bevault_workers.stores.store_registry.load_store_config")
+@patch("bevault_workers.stores.store_registry.StoreRegistry._resolve_store_class")
+def test_load_best_effort_skips_unresolved_store_filetoken_still_works(
+    mock_resolve, mock_load_config
+):
+    """A broken store type is skipped; FileStore resolution still works for others."""
+    sftp_conf = {
+        "Host": "sftp.example.com",
+        "Port": 22,
+        "Username": "user",
+        "Password": "pass",
+        "Prefix": "/uploads/",
+    }
+    mock_load_config.return_value = [
+        {"Name": "sftpStore", "Type": "sftp", "Config": sftp_conf},
+        {"Name": "mysql-string", "Type": "mysql", "Config": {}},
+    ]
+
+    from bevault_workers.stores.sftp import Store as SftpStore
+
+    def resolve(type_spec):
+        if type_spec == "mysql":
+            raise ImportError("No module named 'bevault_workers.stores.mysql'")
+        return SftpStore
+
+    mock_resolve.side_effect = resolve
+
+    StoreRegistry.load()
+
+    assert "sftpStore" in StoreRegistry.all()
+    assert "mysql-string" not in StoreRegistry.all()
+
+    token = "sftp://sftpStore/path/to/file.txt"
+    store = StoreRegistry.get_store_from_filetoken(token)
+    assert isinstance(store, SftpStore)
+
+
+@patch("bevault_workers.stores.store_registry.StoreRegistry._resolve_store_class")
+def test_shared_mode_all_skips_bad_definition(mock_resolve):
+    """Worker-style shared definitions: one bad entry does not break all()."""
+    sftp_conf = {
+        "Host": "sftp.example.com",
+        "Port": 22,
+        "Username": "user",
+        "Password": "pass",
+        "Prefix": "/uploads/",
+    }
+    shared_definitions = [
+        {"Name": "goodSftp", "Type": "sftp", "Config": sftp_conf},
+        {"Name": "badMysql", "Type": "mysql", "Config": {}},
+    ]
+    shared_metadata = {
+        "goodSftp": {"source": "local", "display_name": "goodSftp"},
+        "badMysql": {"source": "local", "display_name": "badMysql"},
+    }
+    lock = threading.Lock()
+
+    from bevault_workers.stores.sftp import Store as SftpStore
+
+    def resolve(type_spec):
+        if type_spec == "mysql":
+            raise ImportError("no mysql store")
+        return SftpStore
+
+    mock_resolve.side_effect = resolve
+
+    StoreRegistry.configure_shared_state(shared_definitions, shared_metadata, lock)
+
+    stores = StoreRegistry.all()
+    assert "goodSftp" in stores
+    assert "badMysql" not in stores
+    assert isinstance(stores["goodSftp"], SftpStore)
+
+    with pytest.raises(UnknownStoreError):
+        StoreRegistry.get("badMysql")

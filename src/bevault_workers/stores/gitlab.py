@@ -11,7 +11,7 @@ class Store(FileStore):
     """Read-only FileStore backed by the GitLab repository files API."""
 
     def __init__(self, config):
-        self.base_uri = (get_first(config, "baseUri") or "").rstrip("/")
+        self.base_uri = (get_first(config, "baseUri", "url") or "").rstrip("/")
         self.access_token = get_first(config, "accessToken")
         self.project_id = get_first(config, "projectId")
         self._session = requests.Session()

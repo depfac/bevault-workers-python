@@ -164,22 +164,49 @@ class StoreRegistry:
         }
 
     @classmethod
+    def _apply_definitions_best_effort(cls, definitions, metadata):
+        """Set ``_instances``, ``_definitions``, ``_metadata`` from *definitions*, skipping failures.
+
+        *metadata* is filtered to store names that were built successfully.
+        """
+        instances = {}
+        valid_names = set()
+        accepted_definitions = []
+
+        for store_def in definitions:
+            name = store_def.get("Name")
+            try:
+                built = cls._build_instances_from_definitions([store_def])
+                instances.update(built)
+                valid_names.add(name)
+                accepted_definitions.append(copy.deepcopy(store_def))
+            except Exception as exc:
+                logger.warning("Skipping store %r: %s", name, exc)
+
+        cls._definitions = accepted_definitions
+        cls._instances = instances
+        cls._metadata = {
+            key: dict(value)
+            for key, value in metadata.items()
+            if key in valid_names
+        }
+        cls._loaded = True
+
+    @classmethod
     def load(cls):
-        """Load and instantiate all stores from configuration."""
+        """Load and instantiate stores from configuration (best-effort per definition)."""
         with cls._lock:
             if cls._loaded:
                 return dict(cls._instances)
 
-            configs = load_store_config()  # expected: {name: {type: "...", ...}}
+            configs = load_store_config()
             if not isinstance(configs, list):
                 raise ValueError(
                     "load_store_config() must return a list of store configs"
                 )
-            cls._instances = cls._build_instances_from_definitions(configs)
-            cls._definitions = [copy.deepcopy(item) for item in configs]
-            cls._metadata = cls._default_metadata(configs)
-
-            cls._loaded = True
+            cls._apply_definitions_best_effort(
+                configs, cls._default_metadata(configs)
+            )
             logger.info(
                 "Loaded %d store(s): %s",
                 len(cls._instances),
@@ -195,36 +222,14 @@ class StoreRegistry:
         *metadata* may supply ``source`` / display names etc.; otherwise defaults apply.
         """
         with cls._lock:
-            instances = {}
-            valid_names = set()
-            accepted_definitions = []
-
-            for store_def in definitions:
-                name = store_def.get("Name")
-                try:
-                    built = cls._build_instances_from_definitions([store_def])
-                    instances.update(built)
-                    valid_names.add(name)
-                    accepted_definitions.append(copy.deepcopy(store_def))
-                except Exception as exc:
-                    logger.error("Skipping invalid store '%s': %s", name, exc)
-
             base_metadata = metadata or cls._default_metadata(definitions)
-            cls._definitions = accepted_definitions
-            cls._instances = instances
-            cls._metadata = {
-                key: dict(value)
-                for key, value in base_metadata.items()
-                if key in valid_names
-            }
-            cls._loaded = True
+            cls._apply_definitions_best_effort(definitions, base_metadata)
             logger.info(
                 "Reloaded %d valid store(s): %s",
                 len(cls._instances),
                 ", ".join(cls._instances.keys()),
             )
             return dict(cls._instances)
-
     @classmethod
     def get(cls, name: str):
         """Return the store instance named *name*.
@@ -240,7 +245,15 @@ class StoreRegistry:
                 store_def = cls._get_shared_definition(name)
                 if store_def is None:
                     raise UnknownStoreError(name)
-                instance = cls._build_instance_from_definition(store_def)
+                try:
+                    instance = cls._build_instance_from_definition(store_def)
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to build store %r from shared definition: %s",
+                        name,
+                        exc,
+                    )
+                    raise UnknownStoreError(name) from exc
                 cls._instances[name] = instance
                 return instance
             if not cls._loaded:
@@ -260,8 +273,17 @@ class StoreRegistry:
             if cls._using_shared_state():
                 instances = {}
                 for store_def in cls._get_shared_all_definitions():
-                    name = store_def["Name"]
-                    instances[name] = cls._build_instance_from_definition(store_def)
+                    name = store_def.get("Name")
+                    try:
+                        instances[name] = cls._build_instance_from_definition(
+                            store_def
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            "Skipping store %r while building registry snapshot: %s",
+                            name,
+                            exc,
+                        )
                 cls._instances = instances
                 return dict(cls._instances)
             if not cls._loaded:
@@ -300,9 +322,9 @@ class StoreRegistry:
 
         Raises:
             ValueError: if the token format is invalid,
-                        if the protocol does not correspond to any known
-                        FileStore protocol,
                         if the resolved store does not exist,
+                        if the token scheme does not match that store's FileStore
+                        protocol,
                         or if the resolved store is not a FileStore.
         """
         parsed = urlparse(filetoken)
@@ -317,32 +339,14 @@ class StoreRegistry:
                 "'<protocol>://<store_name>/<filepath>'"
             )
 
-        # Ensure stores are loaded and get the current registry snapshot
-        stores = cls.all()
-
-        # Look up the store by name
         try:
-            store = stores[store_name]
-        except KeyError:
+            store = cls.get(store_name)
+        except UnknownStoreError:
             raise ValueError(f"Store '{store_name}' not found in registry") from None
 
-        # Store must be a FileStore
         if not isinstance(store, FileStore):
             raise ValueError(f"Store '{store_name}' is not a FileStore")
 
-        # Discover known FileStore protocols from loaded instances
-        file_store_protocols = set()
-        for instance in stores.values():
-            if isinstance(instance, FileStore):
-                module_name = instance.__class__.__module__.rsplit(".", 1)[-1]
-                file_store_protocols.add(module_name)
-
-        if scheme not in file_store_protocols:
-            raise ValueError(
-                f"Protocol '{scheme}' does not correspond to a known FileStore"
-            )
-
-        # Optional: ensure the token protocol matches the resolved store's protocol
         store_module_protocol = store.__class__.__module__.rsplit(".", 1)[-1]
         if store_module_protocol != scheme:
             raise ValueError(
