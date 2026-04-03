@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/depfac/bevault-workers-python/compare/v0.1.2...v0.2.0) (2026-04-03)
+
+
+### Features
+
+* add SQL Server DbStore and dev probe worker ([c3afc4c](https://github.com/depfac/bevault-workers-python/commit/c3afc4c947a270547b5e02c8d26bcd025d50db9a))
+* **store-registry:** tolerate invalid stores and optimize get_store_from_filetoken ([67e0408](https://github.com/depfac/bevault-workers-python/commit/67e04085b730d7831727b9d55c3bd095d37dc5d4))
+* **store:** add support for gitlab store ([e28afe0](https://github.com/depfac/bevault-workers-python/commit/e28afe0af720efa14411c2e8ac31fcdca942768d))
+* **stores:** Add support for gitlab as a readonly FileStore ([587e552](https://github.com/depfac/bevault-workers-python/commit/587e552bd4e00e13c4491207954ddebc0638c998))
+
+
+### Documentation
+
+* review README ([b6d09a5](https://github.com/depfac/bevault-workers-python/commit/b6d09a5f4f8ecf8e7491f8e5b8a1940b724e8c15))
+* review README ([843daf2](https://github.com/depfac/bevault-workers-python/commit/843daf2d02b17787c52741d0ee0bdafcd5d25894))
+
 ## [0.1.2](https://github.com/depfac/bevault-workers-python/compare/v0.1.1...v0.1.2) (2026-04-01)
 
 
