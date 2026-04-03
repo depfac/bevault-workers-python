@@ -48,3 +48,25 @@ def postgresql_config():
         "password": "testpass",
         "dbname": "testdb",
     }
+
+
+@pytest.fixture
+def gitlab_config():
+    """Minimal valid GitLab store config."""
+    return {
+        "BaseUri": "https://gitlab.com",
+        "AccessToken": "test-token",
+        "ProjectId": "123",
+    }
+
+
+@pytest.fixture
+def sqlserver_config():
+    """Minimal valid SQL Server store config."""
+    return {
+        "host": "127.0.0.1",
+        "port": "1433",
+        "user": "testuser",
+        "password": "testpass",
+        "dbname": "testdb",
+    }

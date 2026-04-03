@@ -3,29 +3,26 @@ from bevault_workers import StoreRegistry
 
 class CustomWorker(BaseWorker):
     name = "my_custom_worker"
+
     def handle(self, input_data):
         """
-        Example: load a DbStore by registry name.
+        Example: This worker demonstrates how to use a PostgreSQL store to get the database version.
 
-        ``input_data["outputStore"]`` must match a store ``Name`` in config.json
-        (e.g. ``example-db-store`` when using ``examples/config.json.sample``).
-        Implement ``examples/stores/custom_db_store.py`` before expecting real
-        SQL execution.
+        The value of ``input_data["outputStore"]`` must correspond to a store ``Name`` defined in your ``config.json`` or in States.
+        The worker retrieves the referenced store from the registry and executes a simple SQL query to fetch the database version.
         """
         logger = self.get_logger()
-        logger.info(f"Starting executing custom worker") 
+        logger.info("Starting executing custom worker")
         try:
-            #This is how you can get a store from the registry
-            postgreStore = StoreRegistry.get(input_data["outputStore"])
-            result = postgreStore.execute(query = f"SELECT VERSION()")
-            
+            store = StoreRegistry.get(input_data["outputStore"])
+            result = store.execute(query="SELECT VERSION()")
+
             return {
                 "status": "success",
-                "result": result
+                "result": result,
             }
         except Exception as e:
             return {
                 "status": "error",
-                "error_message": str(e)
+                "error_message": str(e),
             }
-
