@@ -8,6 +8,16 @@ import pytest
 from bevault_workers.stores.sftp import Store
 
 
+def _attach_live_session(store, mock_sftp, mock_ssh_instance=None):
+    """Mark SSH+SFTP as connected so _ensure_connection does not replace mocks."""
+    mock_transport = MagicMock()
+    mock_transport.is_active.return_value = True
+    ssh = mock_ssh_instance if mock_ssh_instance is not None else MagicMock()
+    ssh.get_transport.return_value = mock_transport
+    store.ssh_client = ssh
+    store.sftp_client = mock_sftp
+
+
 def make_attr(filename, is_dir=False):
     """Create SFTPAttributes-like object for listdir_attr mock."""
     st_mode = 0o040000 if is_dir else 0o100000
@@ -68,7 +78,7 @@ def test_list_files(mock_ssh_class, sftp_config):
     ]
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    _attach_live_session(store, mock_sftp, mock_ssh_instance)
 
     result = store.listFiles(prefix="", suffix=".txt")
     # Tokens should not include prefix (prefix is in config, not token)
@@ -91,7 +101,7 @@ def test_open_read(mock_ssh_class, sftp_config):
     mock_ssh_class.return_value = mock_ssh_instance
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    _attach_live_session(store, mock_sftp, mock_ssh_instance)
 
     # Token without prefix - prefix should be added internally
     result = store.openRead("sftp://host/file.txt")
@@ -108,7 +118,7 @@ def test_open_write(mock_ssh_class, sftp_config):
     mock_ssh_class.return_value = mock_ssh_instance
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    _attach_live_session(store, mock_sftp, mock_ssh_instance)
 
     content = b"hello world"
     # Token without prefix - prefix should be added internally
@@ -142,7 +152,7 @@ def test_delete(mock_ssh_class, sftp_config):
     mock_ssh_class.return_value = mock_ssh_instance
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    _attach_live_session(store, mock_sftp, mock_ssh_instance)
     # Token without prefix - prefix should be added internally
     store.delete("sftp://host/file.txt")
 
@@ -156,7 +166,7 @@ def test_exists_true(mock_ssh_class, sftp_config):
     mock_sftp.stat.return_value = MagicMock()
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    _attach_live_session(store, mock_sftp)
 
     # Token without prefix - prefix should be added internally
     assert store.exists("sftp://host/file.txt") is True
@@ -170,7 +180,7 @@ def test_exists_false(mock_ssh_class, sftp_config):
     mock_sftp.stat.side_effect = IOError()
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    _attach_live_session(store, mock_sftp)
 
     # Token without prefix - prefix should be added internally
     assert store.exists("sftp://host/file.txt") is False
@@ -188,6 +198,10 @@ def test_ensure_connection_lazy(mock_ssh_class, sftp_config):
 
     store = Store(sftp_config)
     assert store.sftp_client is None
+
+    mock_transport = MagicMock()
+    mock_transport.is_active.return_value = True
+    mock_ssh_instance.get_transport.return_value = mock_transport
 
     store.exists("sftp://host/file.txt")
 
@@ -228,3 +242,94 @@ def test_connect_key_auth(mock_ssh_class, sftp_config_key_auth):
     call_kwargs = mock_ssh_instance.connect.call_args[1]
     assert call_kwargs["key_filename"] == "/path/to/key"
     assert "password" not in call_kwargs
+
+
+@patch("bevault_workers.stores.sftp.paramiko.SSHClient")
+def test_reconnect_when_transport_inactive(mock_ssh_class, sftp_config):
+    """Stale session (transport not active) triggers close + new connect."""
+    mock_sftp_a = MagicMock()
+    mock_sftp_a.stat.return_value = MagicMock()
+    mock_ssh_a = MagicMock()
+    mock_transport_dead = MagicMock()
+    mock_transport_dead.is_active.return_value = False
+    mock_ssh_a.get_transport.return_value = mock_transport_dead
+    mock_sftp_b = MagicMock()
+    mock_sftp_b.stat.return_value = MagicMock()
+    mock_transport_live = MagicMock()
+    mock_transport_live.is_active.return_value = True
+    mock_ssh_a.open_sftp.return_value = mock_sftp_b
+
+    mock_ssh_class.side_effect = [mock_ssh_a]
+
+    store = Store(sftp_config)
+    store.ssh_client = mock_ssh_a
+    store.sftp_client = mock_sftp_a
+
+    assert store.exists("sftp://host/file.txt") is True
+
+    mock_sftp_a.close.assert_called_once()
+    mock_ssh_a.close.assert_called_once()
+    mock_ssh_a.connect.assert_called_once()
+    mock_sftp_b.stat.assert_called_once_with("/uploads/file.txt")
+
+
+@patch("bevault_workers.stores.sftp.paramiko.SSHClient")
+def test_connect_closes_existing_session(mock_ssh_class, sftp_config):
+    """Second connect() closes previous ssh/sftp clients."""
+    mock_sftp_first = MagicMock()
+    mock_ssh_first = MagicMock()
+    mock_transport = MagicMock()
+    mock_transport.is_active.return_value = True
+    mock_ssh_first.get_transport.return_value = mock_transport
+    mock_ssh_first.open_sftp.return_value = mock_sftp_first
+
+    mock_sftp_second = MagicMock()
+    mock_ssh_second = MagicMock()
+    mock_ssh_second.open_sftp.return_value = mock_sftp_second
+
+    mock_ssh_class.side_effect = [mock_ssh_first, mock_ssh_second]
+
+    store = Store(sftp_config)
+    store.connect()
+    store.connect()
+
+    mock_sftp_first.close.assert_called_once()
+    mock_ssh_first.close.assert_called_once()
+
+
+@patch("bevault_workers.stores.sftp.paramiko.SSHClient")
+def test_open_read_retries_once_on_socket_closed(mock_ssh_class, sftp_config):
+    """Transient socket error on read triggers one reconnect and retry."""
+    mock_sftp_fail = MagicMock()
+    mock_file_fail = MagicMock()
+    mock_file_fail.__enter__ = lambda self: self
+    mock_file_fail.__exit__ = lambda *a: None
+    mock_file_fail.read.side_effect = OSError("Socket is closed")
+    mock_sftp_fail.file.return_value = mock_file_fail
+
+    mock_sftp_ok = MagicMock()
+    mock_file_ok = MagicMock()
+    mock_file_ok.__enter__ = lambda self: self
+    mock_file_ok.__exit__ = lambda *a: None
+    mock_file_ok.read.return_value = b"ok"
+    mock_sftp_ok.file.return_value = mock_file_ok
+
+    mock_ssh_fail = MagicMock()
+    mock_t_fail = MagicMock()
+    mock_t_fail.is_active.return_value = True
+    mock_ssh_fail.get_transport.return_value = mock_t_fail
+
+    mock_ssh_ok = MagicMock()
+    mock_t_ok = MagicMock()
+    mock_t_ok.is_active.return_value = True
+    mock_ssh_ok.get_transport.return_value = mock_t_ok
+    mock_ssh_ok.open_sftp.return_value = mock_sftp_ok
+
+    mock_ssh_class.side_effect = [mock_ssh_ok]
+
+    store = Store(sftp_config)
+    _attach_live_session(store, mock_sftp_fail, mock_ssh_fail)
+
+    assert store.openRead("sftp://host/file.txt") == b"ok"
+    mock_ssh_class.assert_called_once()
+    mock_sftp_ok.file.assert_called_once_with("/uploads/file.txt", "r")
