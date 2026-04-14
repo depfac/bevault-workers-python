@@ -14,6 +14,16 @@ def make_attr(filename, is_dir=False):
     return types.SimpleNamespace(filename=filename, st_mode=st_mode)
 
 
+def wire_store_sftp_session(store, mock_sftp, mock_ssh_instance=None):
+    """Attach SFTP client and mark SSH transport active so _ensure_connection does not reconnect."""
+    ssh = mock_ssh_instance if mock_ssh_instance is not None else MagicMock()
+    transport = MagicMock()
+    transport.is_active.return_value = True
+    ssh.get_transport.return_value = transport
+    store.ssh_client = ssh
+    store.sftp_client = mock_sftp
+
+
 @patch("bevault_workers.stores.sftp.paramiko.SSHClient")
 def test_init_default_port(mock_ssh_class, sftp_config):
     """Port defaults to 22 when omitted."""
@@ -68,7 +78,7 @@ def test_list_files(mock_ssh_class, sftp_config):
     ]
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    wire_store_sftp_session(store, mock_sftp, mock_ssh_instance)
 
     result = store.listFiles(prefix="", suffix=".txt")
     # Tokens should not include prefix (prefix is in config, not token)
@@ -91,7 +101,7 @@ def test_open_read(mock_ssh_class, sftp_config):
     mock_ssh_class.return_value = mock_ssh_instance
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    wire_store_sftp_session(store, mock_sftp, mock_ssh_instance)
 
     # Token without prefix - prefix should be added internally
     result = store.openRead("sftp://host/file.txt")
@@ -108,7 +118,7 @@ def test_open_write(mock_ssh_class, sftp_config):
     mock_ssh_class.return_value = mock_ssh_instance
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    wire_store_sftp_session(store, mock_sftp, mock_ssh_instance)
 
     content = b"hello world"
     # Token without prefix - prefix should be added internally
@@ -127,7 +137,7 @@ def test_open_write_creates_parent_dirs(mock_ssh_class, sftp_config):
     mock_sftp.stat.side_effect = [OSError(), OSError()]
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    wire_store_sftp_session(store, mock_sftp)
     store._mkdir_p("/uploads/sub/file.txt")
 
     assert mock_sftp.mkdir.call_count >= 1
@@ -142,7 +152,7 @@ def test_delete(mock_ssh_class, sftp_config):
     mock_ssh_class.return_value = mock_ssh_instance
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    wire_store_sftp_session(store, mock_sftp, mock_ssh_instance)
     # Token without prefix - prefix should be added internally
     store.delete("sftp://host/file.txt")
 
@@ -156,7 +166,7 @@ def test_exists_true(mock_ssh_class, sftp_config):
     mock_sftp.stat.return_value = MagicMock()
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    wire_store_sftp_session(store, mock_sftp)
 
     # Token without prefix - prefix should be added internally
     assert store.exists("sftp://host/file.txt") is True
@@ -170,7 +180,7 @@ def test_exists_false(mock_ssh_class, sftp_config):
     mock_sftp.stat.side_effect = IOError()
 
     store = Store(sftp_config)
-    store.sftp_client = mock_sftp
+    wire_store_sftp_session(store, mock_sftp)
 
     # Token without prefix - prefix should be added internally
     assert store.exists("sftp://host/file.txt") is False

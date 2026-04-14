@@ -22,7 +22,30 @@ class Store(FileStore):
         self.ssh_client = None
         self.sftp_client = None
 
+    def _close_connection(self):
+        if self.sftp_client is not None:
+            try:
+                self.sftp_client.close()
+            except Exception:
+                pass
+            self.sftp_client = None
+        if self.ssh_client is not None:
+            try:
+                self.ssh_client.close()
+            except Exception:
+                pass
+            self.ssh_client = None
+
+    def _connection_alive(self):
+        if self.ssh_client is None:
+            return False
+        transport = self.ssh_client.get_transport()
+        if transport is None:
+            return False
+        return transport.is_active()
+
     def connect(self):
+        self._close_connection()
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         connect_kwargs = {
@@ -40,7 +63,8 @@ class Store(FileStore):
         self.sftp_client = self.ssh_client.open_sftp()
 
     def _ensure_connection(self):
-        if self.sftp_client is None:
+        if not self._connection_alive():
+            self._close_connection()
             self.connect()
 
     def _get_remote_path(self, fileToken):
