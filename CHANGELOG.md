@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/depfac/bevault-workers-python/compare/v0.2.0...v0.2.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* **sftp:** reconnect when SSH session is dead ([0128088](https://github.com/depfac/bevault-workers-python/commit/01280884643163609fa488c7bc22bfd8286b8ff7))
+* **sftp:** reconnect when SSH session is dead ([78eeb6a](https://github.com/depfac/bevault-workers-python/commit/78eeb6a453a9090fd44d4e02f5f0be796faae034))
+
 ## [0.2.0](https://github.com/depfac/bevault-workers-python/compare/v0.1.2...v0.2.0) (2026-04-03)
 
 
