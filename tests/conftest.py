@@ -70,3 +70,16 @@ def sqlserver_config():
         "password": "testpass",
         "dbname": "testdb",
     }
+
+
+@pytest.fixture
+def snowflake_config():
+    """Minimal valid Snowflake store config (discrete fields)."""
+    return {
+        "host": "org-account.region.privatelink.snowflakecomputing.com",
+        "port": "443",
+        "username": "testuser",
+        "password": "testpass",
+        "database": "testdb",
+        "warehouse": "TEST_WH",
+    }
