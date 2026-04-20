@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/depfac/bevault-workers-python/compare/v0.2.1...v0.3.0) (2026-04-20)
+
+
+### Features
+
+* **snowflake:** add Snowflake connector dependency and configuration fixture ([#13](https://github.com/depfac/bevault-workers-python/issues/13)) ([74fbeec](https://github.com/depfac/bevault-workers-python/commit/74fbeec5cc8cede9b6c35017c6902c8db691fb73))
+
 ## [0.2.1](https://github.com/depfac/bevault-workers-python/compare/v0.2.0...v0.2.1) (2026-04-14)
 
 
